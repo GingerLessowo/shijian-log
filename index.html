@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f3f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="实践记录">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<title>实践记录</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f2f3f5;
+    --card: #ffffff;
+    --text: #1f2329;
+    --muted: #8a919f;
+    --line: #e5e6eb;
+    --focus: #4a7dff;
+    --go: #17994f;
+    --go-bg: #e8f5ee;
+    --go-bg-h: #d9eee2;
+    --warn-bg: #fff7e6;
+    --warn-line: #f0d9a8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 26px 16px 72px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { width: 100%; max-width: 560px; }
+  .card { background: var(--card); border-radius: 14px; margin-bottom: 14px; }
+
+  #warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #8a6d1a;
+    margin-bottom: 14px;
+  }
+
+  /* ---- 录入区 ---- */
+  .entry { padding: 18px 20px 14px; }
+  .entry .row { display: flex; gap: 8px; }
+  .entry .row + .row { margin-top: 8px; }
+  .entry select {
+    flex: 1; min-width: 0; width: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 10px;
+    background: #fff;
+    font-family: inherit; font-size: 14px; color: var(--text);
+    transition: border-color .12s;
+  }
+  .entry select:focus { border-color: var(--focus); outline: none; }
+  .entry input.what, .entry input.nname {
+    flex: 1; min-width: 0; width: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    font-family: inherit; font-size: 14.5px; color: var(--text);
+    outline: 0;
+    transition: border-color .12s;
+  }
+  .entry input.what:focus, .entry input.nname:focus { border-color: var(--focus); }
+  .entry .save, .entry .btn-create {
+    flex: none;
+    border: 0; border-radius: 10px;
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    padding: 0 15px; cursor: pointer;
+    transition: background .12s, transform .1s, opacity .12s;
+  }
+  .entry .save { background: var(--go-bg); color: var(--go); }
+  .entry .save:hover { background: var(--go-bg-h); }
+  .entry .save:active, .entry .btn-create:active { transform: scale(.98); }
+  .entry .save:disabled, .entry .btn-create:disabled { opacity: .45; cursor: default; }
+  .entry .save:disabled:hover { background: var(--go-bg); }
+  .entry .btn-create { background: var(--go-bg); color: var(--go); }
+  .entry .btn-create:hover { background: var(--go-bg-h); }
+  .entry .btn-create:disabled:hover { background: var(--go-bg); }
+  .entry .mini {
+    flex: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 10px;
+    font-family: inherit; font-size: 13px; color: #4e5969;
+    padding: 0 12px; cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .entry .mini:hover { border-color: #c9cdd4; background: #f7f8fa; }
+  .entry textarea {
+    display: block; width: 100%;
+    margin-top: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: inherit; font-size: 13.5px; line-height: 1.5; color: var(--text);
+    background: #fff; resize: vertical; min-height: 54px; outline: 0;
+    transition: border-color .12s;
+  }
+  .entry textarea:focus { border-color: var(--focus); }
+  .extra-toggle {
+    margin-top: 8px;
+    color: var(--muted); font-size: 13px;
+    cursor: pointer; user-select: none;
+    transition: color .12s;
+  }
+  .extra-toggle:hover { color: var(--focus); }
+  .need {
+    text-align: center; color: var(--muted);
+    font-size: 13.5px; line-height: 1.9;
+    padding: 4px 0 10px;
+  }
+  .need .btn { margin-top: 8px; }
+  .entry .state { text-align: center; color: var(--muted); font-size: 12.5px; padding-top: 10px; }
+
+  /* ---- 列表 ---- */
+  .list-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 20px 9px; color: var(--muted); font-size: 13px;
+  }
+  ul { list-style: none; }
+  .proj { padding: 12px 20px 13px; border-top: 1px solid var(--line); }
+  .proj.flash { animation: flash 1s ease-out; }
+  @keyframes flash { from { background: #eef3ff; } to { background: transparent; } }
+  .proj-head {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .chev { flex: none; color: #c9cdd4; font-size: 12px; display: inline-block; transition: transform .15s; }
+  .proj.open .chev, .arch-toggle.open .chev { transform: rotate(90deg); }
+  .pname {
+    flex: 1; min-width: 0;
+    font-size: 14.5px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pcnt { flex: none; font-size: 12.5px; color: var(--muted); }
+  .arch {
+    flex: none;
+    border: 0; background: transparent; border-radius: 7px;
+    font-family: inherit; font-size: 12.5px; color: #c9cdd4;
+    padding: 2px 6px; cursor: pointer;
+    transition: color .12s, background .12s;
+  }
+  .arch:hover { background: #f2f3f5; color: #4e5969; }
+  .last { margin-top: 7px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+  .last.none { color: var(--muted); font-size: 13px; }
+  .last .ll { color: var(--muted); font-size: 12.5px; }
+  .lex { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #4e5969; overflow-wrap: anywhere; }
+  .proj-body { display: none; margin-top: 10px; border-top: 1px dashed var(--line); }
+  .proj.open .proj-body { display: block; }
+  .rec { padding: 9px 0 10px; }
+  .rec + .rec { border-top: 1px solid var(--line); }
+  .rec .top { display: flex; align-items: center; }
+  .rec .rdate { flex: 1; font-size: 12.5px; color: var(--muted); }
+  .rec .del {
+    flex: none;
+    border: 0; background: transparent; border-radius: 7px;
+    font-family: inherit; font-size: 14px; color: #c9cdd4;
+    padding: 0 6px; cursor: pointer;
+    transition: color .12s, background .12s;
+  }
+  .rec .del:hover { background: #f2f3f5; color: #d03050; }
+  .rec .what { margin-top: 3px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+  .rec .rex { margin-top: 3px; font-size: 13px; line-height: 1.5; color: #4e5969; overflow-wrap: anywhere; }
+  .arch-toggle {
+    display: flex; align-items: center; gap: 6px;
+    padding: 11px 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 13px;
+    cursor: pointer; user-select: none;
+    transition: color .12s;
+  }
+  .arch-toggle:hover { color: #4e5969; }
+  #archList .proj { background: #fafbfc; }
+  .none-li { padding: 14px 20px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* ---- 底部工具条 ---- */
+  .toolbar { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13.5px;
+    color: var(--text);
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .btn:hover { border-color: #c9cdd4; background: #f7f8fa; }
+  .toolbar .btn { font-size: 12.5px; padding: 6px 11px; }
+
+  /* ---- 撤销条 ---- */
+  #undo {
+    position: fixed; left: 50%; bottom: 26px;
+    transform: translate(-50%, 12px);
+    background: #1f2329; color: #fff; font-size: 13px;
+    padding: 9px 16px; border-radius: 999px;
+    display: flex; align-items: center; gap: 14px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .18s, transform .18s;
+    box-shadow: 0 6px 20px rgba(0,0,0,.18);
+    z-index: 40;
+    max-width: 90vw;
+  }
+  #undo.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  #undo button { background: none; border: 0; color: #7ea2ff; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; padding: 0; flex: none; }
+  #undoText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  [hidden] { display: none !important; }
+
+  /* PWA/移动端适配（由 build.js 注入） */
+  html { -webkit-text-size-adjust: 100%; }
+  body { padding: calc(20px + env(safe-area-inset-top)) 16px calc(72px + env(safe-area-inset-bottom)); }
+  #undo { bottom: calc(26px + env(safe-area-inset-bottom)); }
+  @media (max-width: 480px) {
+    .entry { padding: 15px 16px 12px; }
+    .entry select, .entry input.what, .entry input.nname, .entry textarea { font-size: 16px; }
+    .entry .save, .entry .btn-create { padding: 0 12px; }
+    .rec .del { padding: 4px 10px; }
+    .arch { padding: 4px 8px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div id="warn" hidden>本地存储不可用：数据只在本页内存中，关闭页面即丢失。请尽快用「导出备份」留一份。</div>
+
+  <div class="card entry">
+    <div class="need" id="needProj" hidden>
+      还没有在推进的事。<br>先建一件事，比如「毕设」「练吉他」，以后每次推进记一笔。
+      <div><button type="button" class="btn" id="emptyNewBtn">＋ 新建一件事</button></div>
+    </div>
+
+    <div class="row" id="selRow">
+      <select id="projSel" title="选择这件事"></select>
+      <button type="button" class="mini" id="newProjBtn">＋新事</button>
+    </div>
+
+    <div class="row" id="newProjRow" hidden>
+      <input type="text" id="newProjName" class="nname" placeholder="新事的名字，如「毕设」" autocomplete="off">
+      <button type="button" class="btn-create" id="createProjBtn" disabled>创建</button>
+    </div>
+
+    <div class="row" id="whatRow">
+      <input type="text" id="what" class="what" placeholder="这次推进了什么…" autocomplete="off">
+      <button type="button" class="save" id="saveBtn" disabled>记一笔</button>
+    </div>
+
+    <div class="extra-toggle" id="extraToggle">＋ 补充（卡点 / 下一步 / 耗时）</div>
+    <textarea id="extra" placeholder="补充：卡在哪、下一步、花了多久…（可留空）" hidden></textarea>
+
+    <div class="state" id="entryHint">选好事 → 写下推进 → 回车即存</div>
+  </div>
+
+  <section class="card" id="listCard" hidden>
+    <div class="list-head"><span>在推进</span><span id="sumText"></span></div>
+    <ul id="activeList"></ul>
+    <div class="arch-toggle" id="archToggle" hidden><span class="chev">▸</span><span id="archCnt"></span></div>
+    <ul id="archList" hidden></ul>
+  </section>
+
+  <div class="toolbar">
+    <button type="button" class="btn" id="importBtn">导入备份</button>
+    <button type="button" class="btn" id="exportBtn">导出备份</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </div>
+</main>
+
+<div id="undo"><span id="undoText"></span><button type="button" id="undoBtn">撤销</button></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'shijian-log-v1';
+  var UNDO_MS = 6000;
+  var EXTRA_TEXT = '＋ 补充（卡点 / 下一步 / 耗时）';
+  var EXTRA_TEXT_OPEN = '－ 收起补充';
+
+  var state = { projects: [], records: [], selectedPid: null };
+  var expanded = {};
+  var archOpen = false;
+  var extraOpen = false;
+  var undoAction = null;
+  var undoTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- 存储 ---------- */
+  /* 事名与「做了什么」是主心骨，坏值不留；补充属旁支，坏值归一为空 */
+  function validProject(p) {
+    return p && typeof p === 'object'
+      && typeof p.id === 'string' && p.id
+      && typeof p.name === 'string' && p.name.trim() !== ''
+      && typeof p.createdTs === 'number' && isFinite(p.createdTs);
+  }
+
+  function normalizeProject(p) {
+    return { id: p.id, name: p.name.trim(), createdTs: p.createdTs, archived: p.archived === true };
+  }
+
+  function validRec(r) {
+    return r && typeof r === 'object'
+      && typeof r.id === 'string' && r.id
+      && typeof r.projectId === 'string' && r.projectId
+      && typeof r.ts === 'number' && isFinite(r.ts)
+      && typeof r.what === 'string' && r.what.trim() !== '';
+  }
+
+  function normalizeRec(r) {
+    return {
+      id: r.id,
+      projectId: r.projectId,
+      ts: r.ts,
+      what: r.what.trim(),
+      extra: typeof r.extra === 'string' ? r.extra : ''
+    };
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { projects: [], records: [], lastProjId: null };
+      var data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return { projects: [], records: [], lastProjId: null };
+      var projects = Array.isArray(data.projects) ? data.projects.filter(validProject).map(normalizeProject) : [];
+      var ids = {};
+      projects.forEach(function (p) { ids[p.id] = true; });
+      var records = Array.isArray(data.records)
+        ? data.records.filter(validRec).filter(function (r) { return ids[r.projectId]; }).map(normalizeRec)
+        : [];
+      var lastProjId = typeof data.lastProjId === 'string' ? data.lastProjId : null;
+      return { projects: projects, records: records, lastProjId: lastProjId };
+    } catch (err) {
+      console.error('读取存储失败，按空数据启动', err);
+      return { projects: [], records: [], lastProjId: null };
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        v: 1,
+        lastProjId: state.selectedPid,
+        projects: state.projects,
+        records: state.records
+      }));
+    } catch (err) {
+      console.error('保存失败', err);
+      $('warn').hidden = false;
+    }
+  }
+
+  /* ---------- 日期 ---------- */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function dayKey(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function dateText(ts) {
+    var d = new Date(ts), now = new Date();
+    var k = dayKey(ts);
+    if (k === dayKey(now.getTime())) return '今天';
+    if (k === dayKey(now.getTime() - 86400000)) return '昨天';
+    return (d.getFullYear() === now.getFullYear() ? '' : d.getFullYear() + '年') + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+
+  function timeText(ts) {
+    var d = new Date(ts);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function fullTimeText(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + timeText(ts);
+  }
+
+  function weekStartTs() {
+    var n = new Date();
+    n.setHours(0, 0, 0, 0);
+    return n.getTime() - ((n.getDay() + 6) % 7) * 86400000;
+  }
+
+  /* ---------- 工具 ---------- */
+  function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function findProject(id) {
+    for (var i = 0; i < state.projects.length; i++) {
+      if (state.projects[i].id === id) return state.projects[i];
+    }
+    return null;
+  }
+
+  function findRec(id) {
+    for (var i = 0; i < state.records.length; i++) {
+      if (state.records[i].id === id) return { idx: i, rec: state.records[i] };
+    }
+    return null;
+  }
+
+  function shortText(s) { return s.length > 16 ? s.slice(0, 16) + '…' : s; }
+
+  function recsOf(pid) {
+    return state.records
+      .filter(function (r) { return r.projectId === pid; })
+      .sort(function (a, b) { return b.ts - a.ts; });
+  }
+
+  function lastTsOf(p) {
+    var list = recsOf(p.id);
+    return list.length ? list[0].ts : p.createdTs;
+  }
+
+  function actives() {
+    return state.projects
+      .filter(function (p) { return !p.archived; })
+      .sort(function (a, b) { return lastTsOf(b) - lastTsOf(a); });
+  }
+
+  function archiveds() {
+    return state.projects
+      .filter(function (p) { return p.archived; })
+      .sort(function (a, b) { return lastTsOf(b) - lastTsOf(a); });
+  }
+
+  function ensureSelection() {
+    var act = actives();
+    var ok = act.some(function (p) { return p.id === state.selectedPid; });
+    if (!ok) state.selectedPid = act.length ? act[0].id : null;
+  }
+
+  function weekCount() {
+    var ws = weekStartTs();
+    return state.records.filter(function (r) { return r.ts >= ws; }).length;
+  }
+
+  function flashProj(pid) {
+    var li = document.querySelector('.proj[data-pid="' + pid + '"]');
+    if (li) li.classList.add('flash');
+  }
+
+  /* ---------- 渲染 ---------- */
+  function renderSelect() {
+    var sel = $('projSel');
+    sel.textContent = '';
+    actives().forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.name;
+      sel.appendChild(o);
+    });
+    if (state.selectedPid) sel.value = state.selectedPid;
+  }
+
+  function buildLastLine(p) {
+    var list = recsOf(p.id);
+    if (!list.length) {
+      var none = document.createElement('div');
+      none.className = 'last none';
+      none.textContent = '还没有推进记录';
+      return none;
+    }
+    var rec = list[0];
+    var line = document.createElement('div');
+    line.className = 'last';
+    var ll = document.createElement('span');
+    ll.className = 'll';
+    ll.textContent = '上次 ';
+    var ld = document.createElement('span');
+    ld.className = 'ldate';
+    ld.textContent = dateText(rec.ts);
+    var lw = document.createElement('span');
+    lw.className = 'lwhat';
+    lw.textContent = ' · ' + rec.what;
+    line.appendChild(ll);
+    line.appendChild(ld);
+    line.appendChild(lw);
+    return line;
+  }
+
+  function buildRecRow(r) {
+    var li = document.createElement('li');
+    li.className = 'rec';
+    li.dataset.rid = r.id;
+
+    var top = document.createElement('div');
+    top.className = 'top';
+    var date = document.createElement('span');
+    date.className = 'rdate';
+    date.textContent = dateText(r.ts) + ' ' + timeText(r.ts);
+    date.title = fullTimeText(r.ts);
+    top.appendChild(date);
+
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'del';
+    del.dataset.del = r.id;
+    del.title = '删除';
+    del.textContent = '×';
+    top.appendChild(del);
+
+    var what = document.createElement('div');
+    what.className = 'what';
+    what.textContent = r.what;
+
+    li.appendChild(top);
+    li.appendChild(what);
+    if (r.extra) {
+      var ex = document.createElement('div');
+      ex.className = 'rex';
+      ex.textContent = r.extra;
+      li.appendChild(ex);
+    }
+    return li;
+  }
+
+  function buildProjectCard(p) {
+    var li = document.createElement('li');
+    li.className = 'proj' + (expanded[p.id] ? ' open' : '');
+    li.dataset.pid = p.id;
+
+    var head = document.createElement('div');
+    head.className = 'proj-head';
+    head.title = '点击展开 / 收起记录';
+    var chev = document.createElement('span');
+    chev.className = 'chev';
+    chev.textContent = '▸';
+    var name = document.createElement('span');
+    name.className = 'pname';
+    name.textContent = p.name;
+    head.appendChild(chev);
+    head.appendChild(name);
+
+    var list = recsOf(p.id);
+    if (list.length) {
+      var cnt = document.createElement('span');
+      cnt.className = 'pcnt';
+      cnt.textContent = list.length + ' 条';
+      head.appendChild(cnt);
+    }
+
+    var act = document.createElement('button');
+    act.type = 'button';
+    act.className = 'arch';
+    if (p.archived) {
+      act.dataset.restore = p.id;
+      act.title = '恢复到在推进';
+      act.textContent = '恢复';
+    } else {
+      act.dataset.arch = p.id;
+      act.title = '归档（记录保留，可恢复）';
+      act.textContent = '归档';
+    }
+    head.appendChild(act);
+    li.appendChild(head);
+
+    li.appendChild(buildLastLine(p));
+    if (list.length && list[0].extra) {
+      var lex = document.createElement('div');
+      lex.className = 'lex';
+      lex.textContent = list[0].extra;
+      li.appendChild(lex);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'proj-body';
+    var ul = document.createElement('ul');
+    list.forEach(function (r) { ul.appendChild(buildRecRow(r)); });
+    body.appendChild(ul);
+    li.appendChild(body);
+    return li;
+  }
+
+  function renderEntry() {
+    var has = actives().length > 0;
+    $('needProj').hidden = has;
+    $('selRow').hidden = !has;
+    $('whatRow').hidden = !has;
+    $('extraToggle').hidden = !has;
+    $('entryHint').hidden = !has;
+    if (!has) setExtraOpen(false);
+    renderSelect();
+  }
+
+  function renderList() {
+    var total = state.records.length;
+    $('listCard').hidden = state.projects.length === 0;
+    $('sumText').textContent = total === 0
+      ? '还没有推进记录'
+      : '共 ' + total + ' 条推进 · 本周 ' + weekCount() + ' 条';
+
+    var ul = $('activeList');
+    ul.textContent = '';
+    var act = actives();
+    if (!act.length) {
+      var li = document.createElement('li');
+      li.className = 'none-li';
+      li.textContent = '没有在推进的事';
+      ul.appendChild(li);
+    } else {
+      act.forEach(function (p) { ul.appendChild(buildProjectCard(p)); });
+    }
+
+    var ar = archiveds();
+    $('archToggle').hidden = ar.length === 0;
+    $('archToggle').classList.toggle('open', archOpen);
+    $('archCnt').textContent = '已归档 (' + ar.length + ')';
+    var al = $('archList');
+    al.textContent = '';
+    al.hidden = !archOpen;
+    if (archOpen && ar.length) {
+      ar.forEach(function (p) { al.appendChild(buildProjectCard(p)); });
+    }
+  }
+
+  function renderAll() {
+    ensureSelection();
+    renderEntry();
+    renderList();
+    refreshSave();
+  }
+
+  function refreshSave() {
+    $('saveBtn').disabled = !(state.selectedPid && $('what').value.trim() !== '');
+  }
+
+  function setExtraOpen(open) {
+    extraOpen = open;
+    $('extra').hidden = !open;
+    $('extraToggle').textContent = open ? EXTRA_TEXT_OPEN : EXTRA_TEXT;
+  }
+
+  /* ---------- 新建事 ---------- */
+  function openNewProj() {
+    $('newProjRow').hidden = false;
+    $('newProjName').value = '';
+    $('createProjBtn').disabled = true;
+    $('newProjName').focus();
+  }
+
+  function createProject() {
+    var name = $('newProjName').value.trim();
+    if (!name) return;
+    var p = { id: genId(), name: name, createdTs: Date.now(), archived: false };
+    state.projects.push(p);
+    state.selectedPid = p.id;
+    $('newProjName').value = '';
+    $('newProjRow').hidden = true;
+    save();
+    renderAll();
+    flashProj(p.id);
+    $('what').focus();
+  }
+
+  /* ---------- 记一笔 ---------- */
+  function addRecord() {
+    var what = $('what').value.trim();
+    if (!what || !state.selectedPid) return;
+    var rec = {
+      id: genId(),
+      projectId: state.selectedPid,
+      ts: Date.now(),
+      what: what,
+      extra: $('extra').value.trim()
+    };
+    state.records.push(rec);
+    save();
+    $('what').value = '';
+    $('extra').value = '';
+    setExtraOpen(false);
+    renderAll();
+    flashProj(rec.projectId);
+    showUndo('已记一笔：' + shortText(what), function () {
+      var hit = findRec(rec.id);
+      if (hit) state.records.splice(hit.idx, 1);
+      save();
+      renderAll();
+    });
+    $('what').focus();
+  }
+
+  /* ---------- 删除记录 ---------- */
+  function deleteRecord(rid) {
+    var hit = findRec(rid);
+    if (!hit) return;
+    var removed = state.records.splice(hit.idx, 1)[0];
+    save();
+    renderAll();
+    showUndo('已删除：' + shortText(removed.what), function () {
+      state.records.push(removed);
+      save();
+      renderAll();
+    });
+  }
+
+  /* ---------- 归档 / 恢复 ---------- */
+  function setArchived(pid, val) {
+    var p = findProject(pid);
+    if (!p || p.archived === val) return;
+    p.archived = val;
+    if (val) archOpen = true;
+    ensureSelection();
+    save();
+    renderAll();
+    showUndo((val ? '已归档「' : '已恢复「') + shortText(p.name) + '」', function () {
+      p.archived = !val;
+      ensureSelection();
+      save();
+      renderAll();
+    });
+  }
+
+  function toggleProj(pid) {
+    expanded[pid] = !expanded[pid];
+    var li = document.querySelector('.proj[data-pid="' + pid + '"]');
+    if (li) li.classList.toggle('open', !!expanded[pid]);
+  }
+
+  /* ---------- 撤销条 ---------- */
+  function showUndo(text, fn) {
+    undoAction = fn;
+    $('undoText').textContent = text;
+    $('undo').classList.add('show');
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(hideUndo, UNDO_MS);
+  }
+
+  function hideUndo() {
+    undoAction = null;
+    clearTimeout(undoTimer);
+    $('undo').classList.remove('show');
+  }
+
+  $('undoBtn').addEventListener('click', function () {
+    if (!undoAction) return;
+    var fn = undoAction;
+    hideUndo();
+    fn();
+  });
+
+  /* ---------- 导出 / 导入 ---------- */
+  function exportJSON() {
+    var now = new Date();
+    var ymd = now.getFullYear() + pad2(now.getMonth() + 1) + pad2(now.getDate());
+    var data = { v: 1, exportedAt: now.toISOString(), projects: state.projects, records: state.records };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '实践记录备份-' + ymd + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+  }
+
+  $('exportBtn').addEventListener('click', exportJSON);
+  $('importBtn').addEventListener('click', function () { $('importFile').click(); });
+
+  $('importFile').addEventListener('change', function () {
+    var input = this;
+    var f = input.files && input.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      input.value = '';
+      var data;
+      try {
+        data = JSON.parse(String(reader.result));
+      } catch (err) {
+        alert('导入失败：文件不是有效的 JSON');
+        return;
+      }
+      if (!data || typeof data !== 'object' || !Array.isArray(data.projects) || !Array.isArray(data.records)) {
+        alert('导入失败：不像是本工具的备份文件（缺少 projects / records）');
+        return;
+      }
+      var projects = data.projects.filter(validProject).map(normalizeProject);
+      var ids = {};
+      projects.forEach(function (p) { ids[p.id] = true; });
+      var records = data.records.filter(validRec).filter(function (r) { return ids[r.projectId]; }).map(normalizeRec);
+      var ok = confirm('将用备份覆盖当前全部数据（现有 ' + state.projects.length + ' 件事 / ' + state.records.length + ' 条推进 → 备份 ' + projects.length + ' 件事 / ' + records.length + ' 条推进），确定？');
+      if (!ok) return;
+      state.projects = projects;
+      state.records = records;
+      state.selectedPid = null;
+      expanded = {};
+      archOpen = false;
+      save();
+      renderAll();
+      alert('已导入 ' + projects.length + ' 件事、' + records.length + ' 条推进');
+    };
+    reader.readAsText(f);
+  });
+
+  /* ---------- 事件 ---------- */
+  $('saveBtn').addEventListener('click', addRecord);
+  $('what').addEventListener('input', refreshSave);
+  $('what').addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter') return;
+    if (ev.isComposing || ev.keyCode === 229) return;
+    ev.preventDefault();
+    if (!$('saveBtn').disabled) addRecord();
+  });
+
+  $('projSel').addEventListener('change', function () {
+    state.selectedPid = this.value;
+    save();
+    refreshSave();
+  });
+
+  $('newProjBtn').addEventListener('click', openNewProj);
+  $('emptyNewBtn').addEventListener('click', openNewProj);
+  $('createProjBtn').addEventListener('click', createProject);
+  $('newProjName').addEventListener('input', function () {
+    $('createProjBtn').disabled = this.value.trim() === '';
+  });
+  $('newProjName').addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') {
+      if (ev.isComposing || ev.keyCode === 229) return;
+      ev.preventDefault();
+      createProject();
+    } else if (ev.key === 'Escape') {
+      ev.stopPropagation();
+      $('newProjRow').hidden = true;
+    }
+  });
+
+  $('extraToggle').addEventListener('click', function () {
+    setExtraOpen(!extraOpen);
+    if (extraOpen) $('extra').focus();
+  });
+
+  document.addEventListener('click', function (ev) {
+    var del = ev.target.closest('[data-del]');
+    if (del) { deleteRecord(del.dataset.del); return; }
+    var arch = ev.target.closest('[data-arch]');
+    if (arch) { setArchived(arch.dataset.arch, true); return; }
+    var rest = ev.target.closest('[data-restore]');
+    if (rest) { setArchived(rest.dataset.restore, false); return; }
+    if (ev.target.closest('#archToggle')) { archOpen = !archOpen; renderList(); return; }
+    var head = ev.target.closest('.proj-head');
+    if (head) {
+      var li = head.closest('.proj');
+      if (li) toggleProj(li.dataset.pid);
+    }
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    var t = ev.target;
+    var tagName = t && t.tagName;
+    var typing = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+
+    if (ev.key === 'Escape') {
+      if (typing) { t.blur(); return; }
+      hideUndo();
+      return;
+    }
+    if (typing) return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key === 'Enter' && tagName === 'BUTTON') ev.preventDefault();
+  });
+
+  /* ---------- 启动 ---------- */
+  var loaded = load();
+  state.projects = loaded.projects;
+  state.records = loaded.records;
+  state.selectedPid = loaded.lastProjId;
+  ensureSelection();
+  renderAll();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
